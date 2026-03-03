@@ -42,81 +42,60 @@ const Index = () => {
 
     if (!postsData) { setLoading(false); return; }
 
-    // Count stats
     let postCount = 0, threadCount = 0;
-    postsData.forEach(p => {
-      if (p.content.length <= 500) postCount++;
-      else threadCount++;
-    });
+    postsData.forEach(p => { if (p.content.length <= 500) postCount++; else threadCount++; });
     setStats({ posts: postCount, threads: threadCount });
 
     const postIds = postsData.map(p => p.id);
-    
-    // Increment views for visible posts
     if (postIds.length > 0) {
       const visibleIds = postIds.slice(0, POSTS_PER_PAGE);
       supabase.rpc('increment_post_views', { post_ids: visibleIds }).then();
     }
 
-    const { data: likesData } = await supabase
-      .from('likes')
-      .select('post_id, user_id')
-      .in('post_id', postIds.length > 0 ? postIds : ['none']);
-
-    const { data: commentsData } = await supabase
-      .from('comments')
-      .select('post_id')
-      .in('post_id', postIds.length > 0 ? postIds : ['none']);
+    const { data: likesData } = await supabase.from('likes').select('post_id, user_id').in('post_id', postIds.length > 0 ? postIds : ['none']);
+    const { data: commentsData } = await supabase.from('comments').select('post_id').in('post_id', postIds.length > 0 ? postIds : ['none']);
 
     const enriched: PostData[] = postsData.map((p: any) => ({
-      id: p.id,
-      title: p.title,
-      content: p.content,
-      created_at: p.created_at,
-      author: p.author,
-      image_urls: p.image_urls || [],
-      category: p.category,
-      views: p.views || 0,
+      id: p.id, title: p.title, content: p.content, created_at: p.created_at,
+      author: p.author, image_urls: p.image_urls || [], category: p.category, views: p.views || 0,
       likes_count: likesData?.filter(l => l.post_id === p.id).length || 0,
       comments_count: commentsData?.filter(c => c.post_id === p.id).length || 0,
       user_liked: user ? likesData?.some(l => l.post_id === p.id && l.user_id === user.id) || false : false,
     }));
 
-    // Sort: mix latest with high engagement
-    // Take top engaged posts and interleave with recent
     const sorted = [...enriched].sort((a, b) => {
-      const engA = a.likes_count + a.comments_count;
-      const engB = b.likes_count + b.comments_count;
-      // Primary: recent first, but boost high engagement
-      const timeA = new Date(a.created_at).getTime();
-      const timeB = new Date(b.created_at).getTime();
-      const score = (eng: number, time: number) => time + eng * 3600000; // each engagement = +1 hour boost
-      return score(engB, timeB) - score(engA, timeA);
+      const score = (eng: number, time: number) => time + eng * 3600000;
+      return score(b.likes_count + b.comments_count, new Date(b.created_at).getTime())
+        - score(a.likes_count + a.comments_count, new Date(a.created_at).getTime());
     });
 
     setPosts(sorted);
     setLoading(false);
   }, [user]);
 
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+
+  // Real-time subscription for new/updated/deleted posts
   useEffect(() => {
-    fetchPosts();
+    const channel = supabase
+      .channel('public:posts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+        fetchPosts();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [fetchPosts]);
 
-  // Increment views when user scrolls and sees more posts
   useEffect(() => {
     if (posts.length > 0 && visibleCount > POSTS_PER_PAGE) {
       const newIds = posts.slice(visibleCount - POSTS_PER_PAGE, visibleCount).map(p => p.id);
-      if (newIds.length > 0) {
-        supabase.rpc('increment_post_views', { post_ids: newIds }).then();
-      }
+      if (newIds.length > 0) supabase.rpc('increment_post_views', { post_ids: newIds }).then();
     }
   }, [visibleCount, posts]);
 
   const filtered = search.trim()
-    ? posts.filter(p =>
-        p.title.toLowerCase().includes(search.toLowerCase()) ||
-        p.content.toLowerCase().includes(search.toLowerCase())
-      )
+    ? posts.filter(p => p.title.toLowerCase().includes(search.toLowerCase()) || p.content.toLowerCase().includes(search.toLowerCase()))
     : posts;
 
   const visible = filtered.slice(0, visibleCount);
@@ -129,12 +108,7 @@ const Index = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search posts..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+            <Input placeholder="Search posts..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           {user && <CreatePostDialog onPostCreated={fetchPosts} />}
         </div>
@@ -143,9 +117,7 @@ const Index = () => {
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="space-y-3 rounded-lg border p-4">
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" />
               </div>
             ))
           ) : visible.length === 0 ? (
@@ -156,28 +128,21 @@ const Index = () => {
             </div>
           ) : (
             <>
-              {visible.map((post) => (
-                <PostCard key={post.id} post={post} onUpdate={fetchPosts} />
-              ))}
+              {visible.map((post) => <PostCard key={post.id} post={post} onUpdate={fetchPosts} />)}
               {hasMore && (
                 <div className="text-center py-4">
-                  <Button variant="outline" onClick={() => setVisibleCount(v => v + POSTS_PER_PAGE)}>
-                    See More
-                  </Button>
+                  <Button variant="outline" onClick={() => setVisibleCount(v => v + POSTS_PER_PAGE)}>See More</Button>
                 </div>
               )}
             </>
           )}
         </div>
 
-        {/* Community Stats */}
         <Card className="mt-8 shadow-card">
           <CardContent className="py-6">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
-                Kanisa Kiganjani Stats
-              </h2>
+              <h2 className="text-lg font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Kanisa Kiganjani Stats</h2>
             </div>
             <div className="flex gap-8">
               <div className="text-center">

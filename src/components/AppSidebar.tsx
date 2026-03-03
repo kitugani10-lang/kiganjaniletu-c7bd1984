@@ -2,24 +2,24 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { NavLink } from '@/components/NavLink';
 import { CATEGORIES } from '@/lib/categories';
-import { Home, Bookmark, LogOut, LogIn } from 'lucide-react';
+import { Home, Bookmark, LogOut, LogIn, Mail } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { toast } from 'sonner';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel,
+  SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from '@/components/ui/sidebar';
 
 export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
+
+  const handleContact = () => {
+    if (!user) { toast.error('Please sign in to see contact info'); return; }
+    navigator.clipboard.writeText('support@kanisakiganjani.com');
+    toast.success('Email copied: support@kanisakiganjani.com');
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -47,11 +47,7 @@ export function AppSidebar() {
               {CATEGORIES.map(cat => (
                 <SidebarMenuItem key={cat.slug}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={`/category/${cat.slug}`}
-                      className="hover:bg-muted/50"
-                      activeClassName="bg-muted text-primary font-medium"
-                    >
+                    <NavLink to={`/category/${cat.slug}`} className="hover:bg-muted/50" activeClassName="bg-muted text-primary font-medium">
                       <cat.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{cat.label}</span>}
                     </NavLink>
@@ -74,6 +70,14 @@ export function AppSidebar() {
                         <Bookmark className="mr-2 h-4 w-4" />
                         {!collapsed && <span>Bookmarks</span>}
                       </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button onClick={handleContact} className="flex w-full items-center hover:bg-muted/50 px-2 py-1.5 rounded-md text-sm">
+                        <Mail className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>Contact Us</span>}
+                      </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>

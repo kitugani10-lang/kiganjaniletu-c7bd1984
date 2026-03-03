@@ -17,6 +17,8 @@ import { validateUsername } from '@/lib/usernameValidation';
 interface ProfileData {
   id: string;
   username: string;
+  first_name: string | null;
+  last_name: string | null;
   avatar_url: string | null;
   location: string | null;
   gender: string | null;
@@ -32,13 +34,12 @@ const Profile = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ username: '', location: '', gender: '', age: '' });
+  const [form, setForm] = useState({ username: '', first_name: '', last_name: '', location: '', gender: '', age: '' });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   const isOwnProfile = user?.id === id;
 
-  // Guests can't view profiles
   useEffect(() => {
     if (!user) {
       toast.error('Please sign in to view profiles');
@@ -50,9 +51,11 @@ const Profile = () => {
     if (!id) return;
     const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
     if (data) {
-      setProfile(data as ProfileData);
+      setProfile(data as any);
       setForm({
         username: data.username || '',
+        first_name: (data as any).first_name || '',
+        last_name: (data as any).last_name || '',
         location: (data as any).location || '',
         gender: (data as any).gender || '',
         age: (data as any).age?.toString() || '',
@@ -86,26 +89,25 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchProfile();
-      fetchPosts();
-    }
+    if (user) { fetchProfile(); fetchPosts(); }
   }, [id, user]);
 
   const handleSave = async () => {
     const usernameError = validateUsername(form.username);
     if (usernameError) { toast.error(usernameError); return; }
+    if (!form.first_name.trim() || !form.last_name.trim()) { toast.error('Please enter your full name'); return; }
     setSaving(true);
     try {
       let avatar_url = profile?.avatar_url;
       if (avatarFile) {
         const compressed = await compressImage(avatarFile);
         const key = await uploadToR2(compressed);
-        // Store key as avatar_url - it'll be resolved by the app
         avatar_url = key;
       }
       const { error } = await supabase.from('profiles').update({
         username: form.username.trim(),
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
         location: form.location.trim() || null,
         gender: form.gender || null,
         age: form.age ? parseInt(form.age) : null,
@@ -118,9 +120,7 @@ const Profile = () => {
       fetchProfile();
     } catch (err: any) {
       toast.error(err.message || 'Failed to update profile');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   if (!user) return null;
@@ -138,11 +138,7 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container mx-auto max-w-2xl px-4 py-6">
-        <Link to="/">
-          <Button variant="ghost" className="mb-4 gap-2">
-            <ArrowLeft className="h-4 w-4" /> Back to Feed
-          </Button>
-        </Link>
+        <Link to="/"><Button variant="ghost" className="mb-4 gap-2"><ArrowLeft className="h-4 w-4" /> Back to Feed</Button></Link>
 
         {profile && (
           <Card className="mb-6 shadow-card">
@@ -157,6 +153,9 @@ const Profile = () => {
                   </Avatar>
                   <div>
                     <CardTitle>{profile.username}</CardTitle>
+                    {profile.first_name && (
+                      <p className="text-sm text-foreground">{profile.first_name} {profile.last_name}</p>
+                    )}
                     <p className="text-sm text-muted-foreground">
                       Member since {new Date(profile.created_at).toLocaleDateString()}
                     </p>
@@ -172,6 +171,10 @@ const Profile = () => {
             <CardContent>
               {editing ? (
                 <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder="First name" value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} />
+                    <Input placeholder="Last name" value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} />
+                  </div>
                   <div>
                     <Input placeholder="Username (6-20 characters)" value={form.username} onChange={e => setForm({...form, username: e.target.value})} maxLength={20} />
                     <p className="text-xs text-muted-foreground mt-1">Letters, numbers, and _ only. 6-20 characters.</p>
@@ -200,15 +203,9 @@ const Profile = () => {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-4 pt-2 text-sm text-muted-foreground">
-                  {profile.location && (
-                    <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {profile.location}</span>
-                  )}
-                  {profile.gender && (
-                    <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> {profile.gender}</span>
-                  )}
-                  {profile.age && (
-                    <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {profile.age} years</span>
-                  )}
+                  {profile.location && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {profile.location}</span>}
+                  {profile.gender && <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> {profile.gender}</span>}
+                  {profile.age && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {profile.age} years</span>}
                 </div>
               )}
             </CardContent>

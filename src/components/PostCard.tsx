@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Heart, MessageCircle, Share2, Send, Bookmark, BookmarkCheck, Eye, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Send, Bookmark, BookmarkCheck, Eye, Pencil, Trash2, X, Check, Flag } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { CATEGORIES } from '@/lib/categories';
@@ -179,6 +179,32 @@ const PostCard = ({ post, onUpdate }: { post: Post; onUpdate: () => void }) => {
     } catch { toast.error('Failed to update comment'); }
   };
 
+  const handleReportPost = async () => {
+    if (!user) { toast.error('Please sign in to report'); return; }
+    const reason = prompt('Why are you reporting this post?');
+    if (!reason?.trim()) return;
+    try {
+      const { error } = await supabase.from('reports').insert({
+        reporter_id: user.id, post_id: post.id, reason: reason.trim(),
+      });
+      if (error) throw error;
+      toast.success('Report submitted. Thank you.');
+    } catch { toast.error('Failed to submit report'); }
+  };
+
+  const handleReportComment = async (commentId: string) => {
+    if (!user) return;
+    const reason = prompt('Why are you reporting this comment?');
+    if (!reason?.trim()) return;
+    try {
+      const { error } = await supabase.from('reports').insert({
+        reporter_id: user.id, comment_id: commentId, reason: reason.trim(),
+      });
+      if (error) throw error;
+      toast.success('Report submitted. Thank you.');
+    } catch { toast.error('Failed to submit report'); }
+  };
+
   const authorDisplay = (
     <div className="flex items-center gap-2">
       {user ? (
@@ -281,9 +307,16 @@ const PostCard = ({ post, onUpdate }: { post: Post; onUpdate: () => void }) => {
             <Share2 className="h-4 w-4" />
           </Button>
           {user && (
-            <Button variant="ghost" size="sm" onClick={handleBookmark} className="gap-1.5 ml-auto">
-              {bookmarked ? <BookmarkCheck className="h-4 w-4 fill-current text-primary" /> : <Bookmark className="h-4 w-4" />}
-            </Button>
+            <div className="flex items-center gap-0 ml-auto">
+              <Button variant="ghost" size="sm" onClick={handleBookmark} className="gap-1.5">
+                {bookmarked ? <BookmarkCheck className="h-4 w-4 fill-current text-primary" /> : <Bookmark className="h-4 w-4" />}
+              </Button>
+              {!isAuthor && (
+                <Button variant="ghost" size="sm" onClick={handleReportPost} className="gap-1.5 text-muted-foreground hover:text-destructive">
+                  <Flag className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
@@ -311,18 +344,24 @@ const PostCard = ({ post, onUpdate }: { post: Post; onUpdate: () => void }) => {
                       ) : (
                         <span className="text-xs font-semibold">{c.author.username}</span>
                       )}
-                      {isCommentAuthor && (
-                        <div className="flex items-center gap-1">
-                          {canEdit(c.created_at) && (
-                            <button onClick={() => { setEditingCommentId(c.id); setEditCommentContent(c.content); }} className="text-muted-foreground hover:text-foreground">
-                              <Pencil className="h-3 w-3" />
+                      <div className="flex items-center gap-1">
+                        {isCommentAuthor ? (
+                          <>
+                            {canEdit(c.created_at) && (
+                              <button onClick={() => { setEditingCommentId(c.id); setEditCommentContent(c.content); }} className="text-muted-foreground hover:text-foreground">
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            )}
+                            <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive">
+                              <Trash2 className="h-3 w-3" />
                             </button>
-                          )}
-                          <button onClick={() => handleDeleteComment(c.id)} className="text-muted-foreground hover:text-destructive">
-                            <Trash2 className="h-3 w-3" />
+                          </>
+                        ) : user && (
+                          <button onClick={() => handleReportComment(c.id)} className="text-muted-foreground hover:text-destructive">
+                            <Flag className="h-3 w-3" />
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                     {editingCommentId === c.id ? (
                       <div className="mt-1 space-y-1">

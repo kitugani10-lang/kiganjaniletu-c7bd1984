@@ -229,8 +229,10 @@ export type Database = {
           age: number | null
           avatar_url: string | null
           created_at: string
+          first_name: string | null
           gender: string | null
           id: string
+          last_name: string | null
           location: string | null
           username: string
         }
@@ -238,8 +240,10 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           created_at?: string
+          first_name?: string | null
           gender?: string | null
           id: string
+          last_name?: string | null
           location?: string | null
           username: string
         }
@@ -247,18 +251,74 @@ export type Database = {
           age?: number | null
           avatar_url?: string | null
           created_at?: string
+          first_name?: string | null
           gender?: string | null
           id?: string
+          last_name?: string | null
           location?: string | null
           username?: string
         }
         Relationships: []
+      }
+      reports: {
+        Row: {
+          comment_id: string | null
+          created_at: string
+          id: string
+          post_id: string | null
+          reason: string
+          reporter_id: string
+          status: string
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          reason: string
+          reporter_id: string
+          status?: string
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          reason?: string
+          reporter_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_public_profile: {
+        Args: { profile_id: string }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          id: string
+          username: string
+        }[]
+      }
       increment_post_views: { Args: { post_ids: string[] }; Returns: undefined }
     }
     Enums: {
