@@ -52,6 +52,7 @@ export type Database = {
           media_url: string | null
           parent_comment_id: string | null
           post_id: string
+          status: string
         }
         Insert: {
           author_id: string
@@ -61,6 +62,7 @@ export type Database = {
           media_url?: string | null
           parent_comment_id?: string | null
           post_id: string
+          status?: string
         }
         Update: {
           author_id?: string
@@ -70,6 +72,7 @@ export type Database = {
           media_url?: string | null
           parent_comment_id?: string | null
           post_id?: string
+          status?: string
         }
         Relationships: [
           {
@@ -201,6 +204,7 @@ export type Database = {
           created_at: string
           id: string
           image_urls: string[] | null
+          status: string
           title: string
           updated_at: string
         }
@@ -211,6 +215,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_urls?: string[] | null
+          status?: string
           title: string
           updated_at?: string
         }
@@ -221,6 +226,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_urls?: string[] | null
+          status?: string
           title?: string
           updated_at?: string
         }
