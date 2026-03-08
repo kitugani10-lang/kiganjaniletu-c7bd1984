@@ -99,7 +99,7 @@ const Moderation = () => {
 
     const { data: comments } = await supabase
       .from('comments')
-      .select('id, content, media_url, created_at, author:profiles!comments_author_id_fkey(username), post:posts!comments_post_id_fkey(title)')
+      .select('id, content, media_url, created_at, author:profiles_public!comments_author_id_fkey(username), post:posts!comments_post_id_fkey(title)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
     if (comments) setPendingComments(comments as any);

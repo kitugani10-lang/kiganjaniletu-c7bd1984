@@ -88,7 +88,7 @@ const PostCard = ({ post, onUpdate, expanded = false, autoShowComments = false }
   const fetchComments = async () => {
     const { data } = await supabase
       .from('comments')
-      .select('*, author:profiles!comments_author_id_fkey(id, username, is_verified, avatar_url)')
+      .select('*, author:profiles_public!comments_author_id_fkey(id, username, is_verified, avatar_url)')
       .eq('post_id', post.id)
       .order('created_at', { ascending: false });
     if (data) setComments(data as any);
