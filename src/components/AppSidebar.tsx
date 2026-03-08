@@ -58,7 +58,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {user ? (
+              {user && (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
@@ -79,15 +79,6 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                   )}
                 </>
-              ) : (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink to="/auth" className="hover:bg-muted/50" activeClassName="bg-muted text-primary font-medium">
-                      <LogIn className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>Sign In / Register</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
               )}
               <SidebarMenuItem>
                 <ContactDialog
