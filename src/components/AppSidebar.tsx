@@ -58,7 +58,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {user ? (
+              {user && (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
@@ -79,15 +79,6 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                   )}
                 </>
-              ) : (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink to="/auth" className="hover:bg-muted/50" activeClassName="bg-muted text-primary font-medium">
-                      <LogIn className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>Sign In / Register</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
               )}
               <SidebarMenuItem>
                 <ContactDialog
@@ -116,10 +107,10 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {user && (
-          <SidebarGroup className="mt-auto">
-            <SidebarGroupContent>
-              <SidebarMenu>
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {user ? (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <button onClick={signOut} className="flex w-full items-center hover:bg-destructive/10 px-2 py-1.5 rounded-md text-sm text-destructive">
@@ -128,10 +119,19 @@ export function AppSidebar() {
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+              ) : (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/auth" className="hover:bg-muted/50" activeClassName="bg-muted text-primary font-medium">
+                      <LogIn className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>Sign In / Register</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
